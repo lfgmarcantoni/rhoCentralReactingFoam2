@@ -1,0 +1,2 @@
+rcrfA1.C
+EXE = $(FOAM_APPBIN)/rcrfA1.C

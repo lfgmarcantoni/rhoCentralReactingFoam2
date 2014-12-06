@@ -1,0 +1,67 @@
+{
+    volScalarField& he = thermo.he();
+volScalarField  rhohe = rho*he; 
+volScalarField rhoK = rho*K; 
+
+  surfaceScalarField he_pos =
+            fvc::interpolate(he, pos, "reconstruct(he)");
+  surfaceScalarField he_neg =
+            fvc::interpolate(he, neg, "reconstruct(he)");
+
+  surfaceScalarField K_pos =
+            fvc::interpolate(K, pos, "reconstruct(K)");
+  surfaceScalarField K_neg =
+            fvc::interpolate(K, neg, "reconstruct(K)");
+
+
+surfaceScalarField rhoK_pos =  rho_pos*K_pos; 
+surfaceScalarField rhoK_neg =  rho_neg*K_neg;
+
+
+
+surfaceScalarField phihe =
+            aphiv_pos*(rho_pos*(he_pos))
+          + aphiv_neg*(rho_neg*(he_neg));
+
+surfaceScalarField phiP =  aphiv_pos*(p_pos) + aphiv_neg*(p_neg);
+
+
+surfaceScalarField phiK =
+            aphiv_pos*(rho_pos*(K_pos))
+          + aphiv_neg*(rho_neg*(K_neg));
+
+	
+    fvScalarMatrix EEqn
+    (
+        fvm::ddt(rhohe)  + fvc::div(phihe)
+      + fvc::ddt(rhoK) + fvc::div(phiK)
+      + (
+            he.name() == "e"
+          ? fvc::div
+            (phihe
+     //           fvc::absolute(phi/fvc::interpolate(rho), U),
+      //          p,
+      //          "div(phiv,p)"
+      
+    ) + fvc::div(phiP)
+          : -dpdt
+        )
+//      - fvm::laplacian(turbulence->alphaEff(), he)
+//     ==
+//        reaction->Sh()
+   //   + fvOptions(rho, he)
+    );
+
+    EEqn.relax();
+
+    fvOptions.constrain(EEqn);
+
+    EEqn.solve();
+
+    fvOptions.correct(he);
+
+    thermo.correct();
+
+    Info<< "min/max(T) = "
+        << min(T).value() << ", " << max(T).value() << endl;
+}

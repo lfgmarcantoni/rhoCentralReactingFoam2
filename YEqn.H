@@ -1,0 +1,135 @@
+///   const cellList& cells = mesh.cells(); 
+/*  surfaceScalarField R_pos ("R_pos",
+          fvc::interpolate(R, pos, "reconstruct(Yi)")); 
+          surfaceScalarField R_neg("R_neg",
+          fvc::interpolate(R, neg, "reconstruct(Yi)"));
+*/
+
+
+/*tmp<fv::convectionScheme<scalar> > mvConvection
+(
+    fv::convectionScheme<scalar>::New
+    (
+        mesh,
+        fields,
+        phi,
+        mesh.divScheme("div(phi,Yic)")
+    )
+);
+
+*/
+// nota agragada para probar git
+Info<<"max rho"<<max(rho)<<endl; 
+{
+//scalar Ru =  8314.47; 
+label inertIndex = -1; 
+volScalarField Yt("Yt", 0.0*Y[0]);
+volScalarField rhot("rhot",0.0*rho);
+// se inicia el loop sobre todas las especies:
+Info<<"Loop"<<Y.size()<<endl;
+
+
+reaction->correct(); 
+
+	for (label i = 0; i < Y.size(); i++)
+ 	{
+Info<<"loop info>"<<i<<endl; 
+//Info<<"Yi"<<"of"<<Yi.name()<<""<<Yi<<endl; 
+ //if (Y[i].name() != inertSpecie)
+ //      {
+ 
+	  volScalarField& rhoYi = rhoY[i]; 
+    	  volScalarField& Yi = Y[i]; // se leen las fracciones de masa dadas como IC
+   //       Info<<"maxYi"<<"of"<<Yi.name()<<""<<max(Yi)<<endl; 
+          // se computa rho*Yi para cada especie 
+//     	  volScalarField rhoYi("rhoYi",rho*Yi);
+ //         Info<<"max rho"<<max(rho)<<endl;
+ //         Info<<"min rhoYi"<<min(rhoYi)<<endl;
+ //         Info<<"max rhoYi"<<max(rhoYi)<<endl;
+ //         Info<<"min rhoYi"<<min(rhoYi)<<endl;
+//Info<<" Cp" <<composition.Cp(i,p,T)<<endl; 
+ //         Info<<"min/min gammaY"<<composition.Cp(i,p,T)<<endl;
+//R=composition.Cp(i,p,T)-composition.Cv(i,p,T); 
+          // se interpola rhoYi sobre las caras de las celdas
+          surfaceScalarField Yi_pos ("Yi_pos",
+          fvc::interpolate(Yi, pos, "reconstruct(Yi)")); 
+          surfaceScalarField Yi_neg("Yi_neg",
+          fvc::interpolate(Yi, neg, "reconstruct(Yi)"));
+    // Se discretiza el término convectivo de la ecuacion de las especies: 
+   surfaceScalarField phiYi("phiYi", aphiv_pos*rho_pos*Yi_pos + aphiv_neg*rho_neg*Yi_neg); // phiYi=rho*U*Yi
+    // se resuelve la ecuacion de las especies ( note que esta comentada la linea correspondiente al término fuente)
+     	            solve
+     	            (
+       			        fvm::ddt(rhoYi)
+        		      + fvc::div(phiYi)
+  //                            == reaction->R(Yi)+ fvOptions(rhoYi)
+//	                ,// == chemistry.RR(i),
+//	                 mesh.solutionDict().solver("rhoYi")
+                   );
+ // rho = rhoYi;
+//Info<<"rhoT"<<max(rhoT)<<endl; 
+	// se calcula Yi a partir de rhoYi resuelto
+//volScalarField rhoYin=rhoYi/R; 
+     Yi = rhoYi/rho;
+	// se corrigen las BCs para Yi
+Yi.correctBoundaryConditions();
+
+// inicio paso de correccion test 
+/*
+
+                        solve
+            (
+                fvm::ddt(rho, Yi)
+              + mvConvection->fvmDiv(phi, Yi),
+//              - fvm::laplacian(turbulence->muEff(), Yi)
+//             ==
+//                kappa*chemistry.RR(i),
+                mesh.solutionDict().solver("Yic")
+            );
+*/
+
+//---fin paso de correccion test 
+
+
+	// se c.orrigen las BCs para rhoYi
+//    rhoYi.boundaryField() = rho.boundaryField()*Yi.boundaryField();
+Yi.max(0.0);
+//Yi.min(1.0);
+//rhoYi.boundaryField() = rho.boundaryField()*Yi.boundaryField();
+//fvOptions.correct(Yi); 
+Yt+=Yi; 
+rhot+=rhoYi; 
+rhoYi.boundaryField() = rho.boundaryField()*Yi.boundaryField();
+/*fvScalarMatrix YiEqn
+            (
+                fvm::ddt(rho, Yi)
+              + mvConvection->fvmDiv(phi, Yi)
+//              - fvm::laplacian(turbulence->muEff(), Yi)
+//             ==
+//                kappa*chemistry.RR(i),
+            );
+YiEqn.relax();
+YiEqn.solve(mesh.solver("Yi"));
+rhoYi=rho*Yi ; 
+
+*/
+fvOptions.correct(Yi); 
+Info<<"rhot max/min"<<max(rhot)<<min(rhot)<<endl; 
+Info<<"rhoYi max/min"<<max(rhoYi)<<min(rhoYi)<<endl; 
+//}
+//else 
+//{
+//inertIndex =i; 
+//}
+    }
+//Y[inertIndex] = scalar(1)-Yt; 
+//Y[inertIndex].max(0.0); 
+//Y[inertIndex].min(1.0);
+thermo.correct(); 
+rho = rhot; 
+Info<<"rho after solv Yeqn"<<"max"<<max(rho)<<endl;  
+Info<<"rho after solv Yeqn"<<"min"<<min(rho)<<endl;  
+//rho = rhot ;
+
+
+}
