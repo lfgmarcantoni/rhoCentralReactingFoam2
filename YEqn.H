@@ -18,7 +18,7 @@
 );
 
 */
-// nota agragada para probar git
+// nota agragada para probar git sss
 Info<<"max rho"<<max(rho)<<endl; 
 {
 //scalar Ru =  8314.47; 
